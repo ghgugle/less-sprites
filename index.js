@@ -16,9 +16,7 @@ function Sprites() {
 	this.readArgs();
 }
 
-Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, mixinName) {
-    mixinName = mixinName || 'j-sprite';
-
+Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, prefix) {
     if ( sourceDir === false) {
         sourceDir = '.'; // default is current directory
     }
@@ -39,7 +37,7 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 	this.destPath = path.resolve(destPath);
 	this.lessPath = path.resolve(lessPath);
 	this.baseUrl = baseUrl;
-	this.mixinName = mixinName;
+	this.prefix = prefix;
 
 	this.files = [];
 	this.spriteFile = im();
@@ -118,7 +116,7 @@ Sprites.prototype.writeStyles = function() {
 				'\tbackground-image: url("%s%s");\n' +
 				'\tbackground-position: %dpx %dpx;\n' +
 			'}\n',
-            file.name.toLowerCase().replace(/\.png/, ''), file.size.width, file.size.height, this.baseUrl, spriteFile, x, y
+            this.prefix + file.name.toLowerCase().replace(/\.png/, ''), file.size.width, file.size.height, this.baseUrl, spriteFile, x, y
 		);
 		if (this.specs.appendRight) {
 			x -= file.size.width;
@@ -154,6 +152,9 @@ Sprites.prototype.readArgs = function() {
     if( !specs['dir'] ) {
         specs['dir'] = '.';
     }
+    if( !specs['prefix'] ) {
+        specs['prefix'] = '';
+    }
 
  	// default directory is same as the json
 	if (!specs['sprite']) {
@@ -182,7 +183,7 @@ Sprites.prototype.readArgs = function() {
 		specs['sprite'],
 		specs['less'],
 		specs['base_url'],
-		specs['mixin_name']
+		specs['prefix']
 	);
 };
 
