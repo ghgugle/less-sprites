@@ -11,12 +11,13 @@ var Q = require('q');
 
 function Sprites() {
 	this.specs = {
-		appendRight: false,
+		appendRight: false
 	};
 	this.readArgs();
 }
 
-Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath) {
+Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, mixinName) {
+    mixinName = mixinName || 'j-sprite';
 	var readDir = false;
 	if (sourceDir !== false) {
 		this.sourceDir = sourceDir;
@@ -36,6 +37,8 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 
 	this.destPath = path.resolve(destPath);
 	this.lessPath = path.resolve(lessPath);
+	this.baseUrl = baseUrl;
+	this.mixinName = mixinName;
 
 	this.files = [];
 	this.spriteFile = im();
@@ -91,7 +94,7 @@ Sprites.prototype.processFile = function(fileName, callback) {
 		this.spriteFile.append(filePath, this.specs.appendRight);
 		this.files.push({
 			name: fileName,
-			size: size,
+			size: size
 		});
 		callback();
 	}.bind(this));
@@ -105,23 +108,23 @@ Sprites.prototype.writeStyles = function() {
 	var y = 0;
 
 	for (var i = 0, l = this.files.length; i < l; i++) {
+		var file = this.files[i];
 		content += util.format(
-			'.sprite("%s", @_spriteDir) {\n\tbackground-image: url("@{_spriteDir}%s");\n\tbackground-position: %dpx %dpx;\n}\n',
-			this.files[i].name, spriteFile, x, y
+			'.%s() {\n' +
+                '\tdisplay: inline-block;\n' +
+                '\twidth: %dpx;\n' +
+                '\theight: %dpx;\n' +
+				'\tbackground-image: url("%s%s");\n' +
+				'\tbackground-position: %dpx %dpx;\n' +
+			'}\n',
+            file.name.toLowerCase().replace(/\.png/, ''), file.size.width, file.size.height, this.baseUrl, spriteFile, x, y
 		);
 		if (this.specs.appendRight) {
-			x -= this.files[i].size.width;
+			x -= file.size.width;
 		} else {
-			y -= this.files[i].size.height;
+			y -= file.size.height;
 		}
 	}
-
-	content += '.sprite (@_) {\n' +
-		'\t@path: e(@_);\n' +
-		'\t@spriteDir: `"@{path}".match(/^(.*\\/)([^\\/]*)$/)[1]`;\n' +
-		'\t@imgName: `"@{path}".match(/^(.*\\/)([^\\/]*)$/)[2]`;\n' +
-		'\t.sprite(@imgName, @spriteDir);\n' +
-		'}\n';
 
 	fs.writeFile(this.lessPath, content, function(err) {
 		if (err) throw err;
@@ -175,7 +178,9 @@ Sprites.prototype.readArgs = function() {
 		path.resolve(specsFile, '..', specs['dir']),
 		specs['files'],
 		specs['sprite'],
-		specs['less']
+		specs['less'],
+		specs['base_url'],
+		specs['mixin_name']
 	);
 };
 
