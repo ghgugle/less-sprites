@@ -101,7 +101,7 @@ Sprites.prototype.processFile = function(fileName, callback) {
 
 Sprites.prototype.writeStyles = function() {
 	var relPath = path.relative(this.sourceDir, path.dirname(this.destPath));
-	var spriteFile = relPath + '/' + path.basename(this.destPath);
+	var spriteFile = path.basename(this.destPath);
 	var content = '';
 	var x = 0;
 	var y = 0;
