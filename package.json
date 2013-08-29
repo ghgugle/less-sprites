@@ -1,10 +1,10 @@
 {
   "name": "less-sprites",
-  "version": "0.2.0",
-  "author": "peteruhnak",
+  "version": "0.2.5",
+  "author": "ghgugle",
   "repository": {
     "type": "git",
-    "url": "git://github.com/polycode/less-sprites.git"
+    "url": "git://github.com/ghgugle/less-sprites.git"
   },
   "description": "Node.js sprites generator for LESS",
   "main": "index.js",
