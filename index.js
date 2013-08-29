@@ -18,22 +18,23 @@ function Sprites() {
 
 Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, mixinName) {
     mixinName = mixinName || 'j-sprite';
-	var readDir = false;
-	if (sourceDir !== false) {
-		this.sourceDir = sourceDir;
-	} else {
-		this.sourceDir = '.'; // default is current directory
-		if (sourceFiles.length == 1) {
-			if (!fs.existsSync(sourceFiles[0])) {
-				throw new Error('Source file "' + sourceFiles[0] + '" does not exist.');
-			}
-			var stats = fs.statSync(sourceFiles[0]);
-			if (stats.isDirectory()) {
-				this.sourceDir = sourceFiles[0];
-				sourceFiles = fs.readdirSync(this.sourceDir);
-			}
-		}
-	}
+
+    if ( sourceDir === false) {
+        sourceDir = '.'; // default is current directory
+    }
+    this.sourceDir = sourceDir;
+
+    if( !(sourceFiles && sourceFiles.length > 0) ) {
+        if (!fs.existsSync(this.sourceDir)) {
+            throw new Error('Source directory "' + this.sourceDir + '" does not exist.');
+        }
+        var stats = fs.statSync(this.sourceDir);
+        if (stats.isDirectory()) {
+            sourceFiles = fs.readdirSync(this.sourceDir);
+        } else {
+            throw new Error('No valid directory was provided.');
+        }
+    }
 
 	this.destPath = path.resolve(destPath);
 	this.lessPath = path.resolve(lessPath);
@@ -146,9 +147,13 @@ Sprites.prototype.readArgs = function() {
 	}
 	specsFile =  path.resolve(specsFile);
 	var specs = require(specsFile);
-	if (!specs['dir']) {
-		specs['dir'] = '.';
-	}
+
+    if (!specs['files'] && !specs['dir']) {
+   		throw new Error('Missing "files" or "dir" property.');
+   	}
+    if( !specs['dir'] ) {
+        specs['dir'] = '.';
+    }
 
  	// default directory is same as the json
 	if (!specs['sprite']) {
@@ -167,9 +172,6 @@ Sprites.prototype.readArgs = function() {
 		specs['less'] = path.dirname(specsFile) + '/' + specs['less'];
 	}
 
-	if (!specs['files']) {
-		throw new Error('Missing "files" property.');
-	}
 	if (specs['direction']) {
 		this.specs.appendRight = specs['direction'] == 'right';
 	}
