@@ -112,7 +112,7 @@ Sprites.prototype.writeStyles = function() {
 		var file = this.files[i];
 		content += util.format(
 			'.%s() {\n' +
-                '\tdisplay: inline-block;\n' +
+                '\tdisplay: block;\n' +
                 '\twidth: %dpx;\n' +
                 '\theight: %dpx;\n' +
 				'\tbackground-image: url("%s%s?%s");\n' +
