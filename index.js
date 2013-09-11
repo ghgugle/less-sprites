@@ -102,6 +102,8 @@ Sprites.prototype.processFile = function(fileName, callback) {
 Sprites.prototype.writeStyles = function() {
 	var relPath = path.relative(this.sourceDir, path.dirname(this.destPath));
 	var spriteFile = path.basename(this.destPath);
+	var date = new Date(),
+		imgVer = date.getFullYear().toString() + date.getMonth() + date.getDate() +  date.getHours() + date.getMinutes() + date.getSeconds();
 	var content = '';
 	var x = 0;
 	var y = 0;
@@ -113,10 +115,10 @@ Sprites.prototype.writeStyles = function() {
                 '\tdisplay: inline-block;\n' +
                 '\twidth: %dpx;\n' +
                 '\theight: %dpx;\n' +
-				'\tbackground-image: url("%s%s");\n' +
+				'\tbackground-image: url("%s%s?%s");\n' +
 				'\tbackground-position: %dpx %dpx;\n' +
 			'}\n',
-            this.prefix + file.name.toLowerCase().replace(/\.png/, ''), file.size.width, file.size.height, this.baseUrl, spriteFile, x, y
+            this.prefix + file.name.toLowerCase().replace(/\.png/, ''), file.size.width, file.size.height, this.baseUrl, spriteFile, imgVer, x, y
 		);
 		if (this.specs.appendRight) {
 			x -= file.size.width;
