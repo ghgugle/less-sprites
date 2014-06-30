@@ -16,7 +16,7 @@ function Sprites() {
 	this.readArgs();
 }
 
-Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, prefix) {
+Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, prefix, noCache) {
     if ( sourceDir === false) {
         sourceDir = '.'; // default is current directory
     }
@@ -38,6 +38,7 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 	this.lessPath = path.resolve(lessPath);
 	this.baseUrl = baseUrl;
 	this.prefix = prefix;
+	this.noCache = noCache;
 
 	this.files = [];
 	this.spriteFile = im();
@@ -52,8 +53,8 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 		.then(function() {
 			this.spriteFile.write(this.destPath, function(err) {
 				if (err) throw err;
-			});
-			this.writeStyles();
+                this.writeStyles();
+			}.bind(this));
 		}.bind(this));
 };
 
@@ -100,36 +101,53 @@ Sprites.prototype.processFile = function(fileName, callback) {
 };
 
 Sprites.prototype.writeStyles = function() {
-	var relPath = path.relative(this.sourceDir, path.dirname(this.destPath));
-	var spriteFile = path.basename(this.destPath);
+    var that = this;
+	var relPath = path.relative(that.sourceDir, path.dirname(that.destPath));
+	var spriteFile = path.basename(that.destPath);
 	var date = new Date(),
 		imgVer = date.getFullYear().toString() + date.getMonth() + date.getDate() +  date.getHours() + date.getMinutes() + date.getSeconds();
 	var content = '';
 	var x = 0;
 	var y = 0;
+    var spriteSize;
 
-	for (var i = 0, l = this.files.length; i < l; i++) {
-		var file = this.files[i];
-		content += util.format(
-			'.%s() {\n' +
-                '\tdisplay: block;\n' +
-                '\twidth: %dpx;\n' +
-                '\theight: %dpx;\n' +
-				'\tbackground-image: url("%s%s?%s");\n' +
-				'\tbackground-position: %dpx %dpx;\n' +
-			'}\n',
-            this.prefix + file.name.toLowerCase().replace(/\.png/, ''), file.size.width, file.size.height, this.baseUrl, spriteFile, imgVer, x, y
-		);
-		if (this.specs.appendRight) {
-			x -= file.size.width;
-		} else {
-			y -= file.size.height;
-		}
-	}
+    im(that.destPath).size(function(err, size) {
+        if (err) throw err;
+        spriteSize = {
+            width: size.width + 'px',
+            height: size.height + 'px'
+        };
 
-	fs.writeFile(this.lessPath, content, function(err) {
-		if (err) throw err;
-	});
+        for (var i = 0, l = that.files.length; i < l; i++) {
+       		var file = that.files[i];
+       		content += util.format(
+       			'.%s(@sizePercent: 1;) {\n' +
+                       '\tdisplay: inline-block;\n' +
+                       '\twidth: (%dpx * @sizePercent);\n' +
+                       '\theight: (%dpx * @sizePercent);\n' +
+       				'\tbackground-image: url("%s%s");\n' +
+       				'\tbackground-position: (%dpx * @sizePercent) (%dpx * @sizePercent);\n' +
+       				'\tbackground-size: (%s * @sizePercent) (%s * @sizePercent);\n' +
+       			'}\n',
+                   that.prefix + file.name.toLowerCase().replace(/\.png/, ''),
+                   file.size.width,
+                   file.size.height,
+                   that.baseUrl,
+                   spriteFile + ( that.noCache ? '?'+imgVer: '' ),
+                   x, y,
+                   spriteSize.width, spriteSize.height
+       		);
+       		if (that.specs.appendRight) {
+       			x -= file.size.width;
+       		} else {
+       			y -= file.size.height;
+       		}
+       	}
+
+       	fs.writeFile(that.lessPath, content, function(err) {
+       		if (err) throw err;
+       	});
+    });
 };
 
 Sprites.prototype.readArgs = function() {
@@ -141,6 +159,7 @@ Sprites.prototype.readArgs = function() {
 	}
 
 	var specsFile = argv[0];
+
 	if (!fs.existsSync(specsFile)) {
 		console.log('Error: Specs file "' + specsFile + '" does not exist.');
 		process.exit();
@@ -154,8 +173,33 @@ Sprites.prototype.readArgs = function() {
     if( !specs['dir'] ) {
         specs['dir'] = '.';
     }
+    if( !specs['output_dir'] ) {
+        specs['output_dir'] = '';
+    }
     if( !specs['prefix'] ) {
         specs['prefix'] = '';
+    }
+    if( !specs['versioning'] ) {
+        specs['versioning'] = false;
+    }
+    if( !specs['nocache'] ) {
+        specs['nocache'] = false;
+    }
+
+    if( specs['sprite'] ) {
+        if( specs['versioning'] ) {
+            var date = new Date(),
+        		spriteVer =
+                    date.getFullYear().toString() + '.' +
+                        (date.getMonth() + 1) + '.' +
+                        date.getDate() + '.' +
+                        date.getHours() + '.' +
+                        (date.getMinutes() + 1) + '.' +
+                        (date.getSeconds() + 1);
+
+            specs['sprite'] += '-' + spriteVer;
+        }
+        specs['sprite'] = specs['output_dir'] + specs['sprite'] + '.png';
     }
 
  	// default directory is same as the json
@@ -185,7 +229,8 @@ Sprites.prototype.readArgs = function() {
 		specs['sprite'],
 		specs['less'],
 		specs['base_url'],
-		specs['prefix']
+		specs['prefix'],
+        specs['nocache']
 	);
 };
 

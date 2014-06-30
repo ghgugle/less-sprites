@@ -1,7 +1,9 @@
 {
   "name": "less-sprites",
-  "version": "0.2.7",
-  "author": "ghgugle",
+  "version": "0.2.8",
+  "author": {
+    "name": "ghgugle"
+  },
   "repository": {
     "type": "git",
     "url": "git://github.com/ghgugle/less-sprites.git"
@@ -9,7 +11,7 @@
   "description": "Node.js sprites generator for LESS",
   "main": "index.js",
   "bin": {
-  	"less-sprites": "index.js"
+    "less-sprites": "index.js"
   },
   "keywords": [
     "css",
@@ -25,5 +27,15 @@
     "async": "~0.2.7"
   },
   "devDependencies": {},
-  "license": "MIT"
+  "license": "MIT",
+  "readme": "# node.js sprites generator for LESS\r\n\r\n## Requirements\r\n`less-sprites` uses [*ImageMagick*](http://www.imagemagick.org/), so install it first. \r\n\r\n## Installation\r\n```\r\nnpm install less-sprites\r\n```\r\n\r\n## Usage\r\nWrite a list of source images into a `.json` file:\r\n`{ \"files\": [\"icon1.png\", \"icon2.png\"] }`\r\n\r\nCreate the sprite:\r\n```bash\r\nless-sprites my-sprite.json\r\n```\r\n\r\nThere are more options you can specify:\r\n```JavaScript\r\n{\r\n\t// Direction of image placement, default \"bottom\"\r\n\t\"direction\": \"right|bottom\",\r\n\t// Directory relative to the .json file where source files are located, default \".\"\r\n\t\"dir\": \".\",\r\n\t// List of source images (without directory, in PNG).\r\n\t\"files\": [\"icon1.png\", \"icon2.png\"]\r\n\t// Location and name of the final sprite, default is same as the .json file.\r\n\t\"sprite\": \"icons-sprite.png\",\r\n\t// Location and name of the final LESS file, default is same as the .json file.\r\n\t\"less\": \"../less/icon-sprite.less\"\r\n}\r\n```\r\n\r\n## Using the sprite in your LESS stylesheet\r\n`less-sprites my-sprite.json` creates two files:\r\n* `my-sprite.png` - the final sprite image\r\n* `my-sprite.less` - positions of the images inside the sprite\r\n\r\nIn your stylesheet you target the original image, not the sprite; it will be translated during compilation.\r\n### CSS without `less-sprites`\r\n```css\r\n.icon-first {\r\n\tbackground: url('/img/icon1.png');\r\n}\r\n.icon-second {\r\n\tbackground: url('img/icon2.png');\r\n}\r\n```\r\n\r\n### LESS with `less-sprites`\r\n```less\r\n@import \"icons/icons-sprite.less\"\r\n\r\n.icon-first {\r\n\t.sprite('/img/icon1.png');\r\n}\r\n.icon-second {\r\n\t.sprite('img/icon2.png');\r\n}\r\n```\r\nwhich is later compiled into final CSS:\r\n```css\r\n.icon-first {\r\n\tbackground: url(\"/img/icons-sprite.png\") 0px 0px;\r\n}\r\n.icon-second {\r\n\tbackground: url(\"img/icons-sprite.png\") 0px -20px;\r\n}\r\n\r\n```\r\nNow when you need to add a new image to the sprite, you simply it to the `.json` file and call `less-sprites`.\r\nNo extra work is needed in your stylesheets.\r\n\r\n## Name conflicts\r\nIf you `@import` several sprites into global namespace there is a possibility of name conflict (imagine referencing two images from two different places as `../image.png`). The best way to avoid this is to always import inside a scope:\r\n```less\r\n.my-icons {\r\n\t@import \"...\";\r\n\t.icon-first {\r\n\t\t.sprite('...');\r\n\t}\r\n}\r\n```\r\n\r\n## License\r\nThe MIT License.\r\n",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/ghgugle/less-sprites/issues"
+  },
+  "_id": "less-sprites@0.2.5",
+  "dist": {
+    "shasum": "c86e3623a215f39961354a779c81820fe11c46bc"
+  },
+  "_from": "less-sprites/"
 }
