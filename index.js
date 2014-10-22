@@ -44,7 +44,7 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
     this.spriteFile = im();
     this.spriteFile.out('-background', 'none');
 
-    this.retinaSupportedFiles = [];
+    this.retinaFiles = [];
     this.spriteFileRetina = im();
     this.spriteFileRetina.out('-background', 'none');
     this.retinaDestPath = ( this.destPath.substr(0, ( this.destPath.length - '.png'.length )) + '-x2.png' );
@@ -57,15 +57,25 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 
     this.combine(sourceFiles)
         .then(function() {
-            if( this.retinaSupportedFiles.length > 0 ) {
+            if( this.retinaFiles.length > 0 ) {
                 this.spriteFileRetina.write(this.retinaDestPath, function(err) {
                     if (err) throw err;
+                    var that = this;
+
+                    im(this.retinaDestPath).size(function(err, retinaImgSize) {
+                        that.spriteFile.write(that.destPath, function(err) {
+                            if (err) throw err;
+                            this.writeStyles(retinaImgSize);
+                        }.bind(that));
+                    });
+
+                }.bind(this));
+            } else {
+                this.spriteFile.write(this.destPath, function(err) {
+                    if (err) throw err;
+                    this.writeStyles();
                 }.bind(this));
             }
-            this.spriteFile.write(this.destPath, function(err) {
-                if (err) throw err;
-                this.writeStyles();
-            }.bind(this));
         }.bind(this));
 };
 
@@ -106,7 +116,10 @@ Sprites.prototype.processFile = function(fileName, callback) {
         // Check for retina
         if( fileName.toLowerCase().substr(-7, 7) == '-x2.png' ) {
             this.spriteFileRetina.append(filePath, this.specs.appendRight);
-            this.retinaSupportedFiles.push( fileName.substr(0, (fileName.length - '-x2.png'.length)) + '.png' );
+            this.retinaFiles.push({
+                name: fileName,
+                size: size
+            });
         } else {
             this.spriteFile.append(filePath, this.specs.appendRight);
 
@@ -120,7 +133,21 @@ Sprites.prototype.processFile = function(fileName, callback) {
     }.bind(this));
 };
 
-Sprites.prototype.writeStyles = function() {
+Sprites.prototype.isFileHasRetinaSupport = function( file ) {
+    var fileName = file.name,
+        retinaFileName = fileName.substr(0, ( fileName.length - '.png'.length )) + '-x2.png';
+
+    for(var i = 0, len = this.retinaFiles.length; i < len; i++) {
+        if( this.retinaFiles[i].name == retinaFileName ) {
+            return this.retinaFiles[i];
+        }
+    }
+
+    return false;
+};
+
+Sprites.prototype.writeStyles = function( retinaImgSize ) {
+    retinaImgSize = retinaImgSize || null;
     var that = this;
     var relPath = path.relative(that.sourceDir, path.dirname(that.destPath));
     var spriteFile = path.basename(that.destPath);
@@ -130,6 +157,8 @@ Sprites.prototype.writeStyles = function() {
     var content = '';
     var x = 0;
     var y = 0;
+    var retX = 0;
+    var retY = 0;
     var spriteSize;
 
     im(that.destPath).size(function(err, size) {
@@ -141,9 +170,10 @@ Sprites.prototype.writeStyles = function() {
 
         for (var i = 0, l = that.files.length; i < l; i++) {
             var file = that.files[i],
-                hasRetinaSupport = ( that.retinaSupportedFiles.indexOf( file.name ) ) != -1;
+                retinaFile = that.isFileHasRetinaSupport( file );
 
-            if( hasRetinaSupport ) {
+            if( retinaFile ) {
+                var retinaFileRatio = (file.size.width/retinaFile.size.width);
                 content += util.format(
                     '.%s(@sizePercent: 1;) {\n' +
                     '\tdisplay: inline-block;\n' +
@@ -151,10 +181,12 @@ Sprites.prototype.writeStyles = function() {
                     '\theight: (%dpx * @sizePercent);\n' +
                     '\tbackground-image: url("%s%s");\n' +
                     '\t@media screen and (-webkit-min-device-pixel-ratio:2), \n' +
-                                        '(min-device-pixel-ratio:2), \n' +
-                                        '(-webkit-min-device-pixel-ratio:1.5), \n' +
-                                        '(min-device-pixel-ratio:1.5) {\n' +
+                                        '\t\t\t\t\t\t(min-device-pixel-ratio:2), \n' +
+                                        '\t\t\t\t\t\t(-webkit-min-device-pixel-ratio:1.5), \n' +
+                                        '\t\t\t\t\t\t(min-device-pixel-ratio:1.5) {\n' +
                     '\t\tbackground-image: url("%s%s");\n' +
+                    '\t\tbackground-position: (%dpx * @sizePercent) (%dpx * @sizePercent);\n' +
+                    '\t\tbackground-size: (%s * @sizePercent) (%s * @sizePercent);\n' +
                     '\t}\n' +
                     '\tbackground-position: (%dpx * @sizePercent) (%dpx * @sizePercent);\n' +
                     '\tbackground-size: (%s * @sizePercent) (%s * @sizePercent);\n' +
@@ -166,9 +198,18 @@ Sprites.prototype.writeStyles = function() {
                     spriteFile + ( that.noCache ? '?'+imgVer: '' ),
                     that.baseUrl,
                     retinaSpriteFile + ( that.noCache ? '?'+imgVer: '' ),
+                    retX, retY,
+                    Math.ceil(retinaImgSize.width * retinaFileRatio) + 'px',
+                    Math.ceil(retinaImgSize.height * retinaFileRatio)+ 'px',
                     x, y,
                     spriteSize.width, spriteSize.height
                 );
+                
+                if (that.specs.appendRight) {
+                    retX -= Math.ceil(retinaFile.size.width * retinaFileRatio);
+                } else {
+                    retY -= Math.ceil(retinaFile.size.height * retinaFileRatio);
+                }
             } else {
                 content += util.format(
                     '.%s(@sizePercent: 1;) {\n' +
