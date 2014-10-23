@@ -47,7 +47,7 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
     this.retinaFiles = [];
     this.spriteFileRetina = im();
     this.spriteFileRetina.out('-background', 'none');
-    this.retinaDestPath = ( this.destPath.substr(0, ( this.destPath.length - '.png'.length )) + '-x2.png' );
+    this.retinaDestPath = ( this.destPath.substr(0, ( this.destPath.length - '.png'.length )) + '@2x.png' );
 
     sourceFiles = this.getSourceFiles(sourceFiles);
 
@@ -114,7 +114,7 @@ Sprites.prototype.processFile = function(fileName, callback) {
         if (err) throw err;
 
         // Check for retina
-        if( fileName.toLowerCase().substr(-7, 7) == '-x2.png' ) {
+        if( fileName.toLowerCase().substr(-7, 7) == '@2x.png' ) {
             this.spriteFileRetina.append(filePath, this.specs.appendRight);
             this.retinaFiles.push({
                 name: fileName,
@@ -135,7 +135,7 @@ Sprites.prototype.processFile = function(fileName, callback) {
 
 Sprites.prototype.isFileHasRetinaSupport = function( file ) {
     var fileName = file.name,
-        retinaFileName = fileName.substr(0, ( fileName.length - '.png'.length )) + '-x2.png';
+        retinaFileName = fileName.substr(0, ( fileName.length - '.png'.length )) + '@2x.png';
 
     for(var i = 0, len = this.retinaFiles.length; i < len; i++) {
         if( this.retinaFiles[i].name == retinaFileName ) {
@@ -204,7 +204,7 @@ Sprites.prototype.writeStyles = function( retinaImgSize ) {
                     x, y,
                     spriteSize.width, spriteSize.height
                 );
-                
+
                 if (that.specs.appendRight) {
                     retX -= Math.ceil(retinaFile.size.width * retinaFileRatio);
                 } else {
