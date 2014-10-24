@@ -57,15 +57,37 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
 
     this.combine(sourceFiles)
         .then(function() {
+            for (var i = 0, l = this.files.length, retFile; i < l; i++) {
+                var file = this.files[i];
+
+                if( retFile = this.isFileHasRetinaSupport( file ) ) {
+                    if(
+                        ((file.size.width/retFile.size.width) != (file.size.height/retFile.size.height)) ||
+                        (file.size.width/retFile.size.width) != 0.5
+                    ) {
+                        console.error(
+                            "Skip: " + retFile.name + " : File size ration doesn't math original one.\n" +
+                            "Retina size: " + retFile.size.width + ":" + retFile.size.height + "\n" +
+                            "Original size: " + file.size.width + ":" + file.size.height + "\n" +
+                            "\n"
+                        );
+
+                        this.retinaFiles.splice( this.retinaFiles.indexOf(retFile), 1 );
+                    }
+                    this.spriteFileRetina.append(retFile.path, this.specs.appendRight);
+                }
+            }
+            //console.log(this.retinaFiles);
+
             if( this.retinaFiles.length > 0 ) {
                 this.spriteFileRetina.write(this.retinaDestPath, function(err) {
                     if (err) throw err;
                     var that = this;
 
-                    im(this.retinaDestPath).size(function(err, retinaImgSize) {
+                    im(this.retinaDestPath).size(function(err, retinaSpriteSize) {
                         that.spriteFile.write(that.destPath, function(err) {
                             if (err) throw err;
-                            this.writeStyles(retinaImgSize);
+                            this.writeStyles(retinaSpriteSize);
                         }.bind(that));
                     });
 
@@ -115,8 +137,8 @@ Sprites.prototype.processFile = function(fileName, callback) {
 
         // Check for retina
         if( fileName.toLowerCase().substr(-7, 7) == '@2x.png' ) {
-            this.spriteFileRetina.append(filePath, this.specs.appendRight);
             this.retinaFiles.push({
+                path: filePath,
                 name: fileName,
                 size: size
             });
@@ -146,8 +168,8 @@ Sprites.prototype.isFileHasRetinaSupport = function( file ) {
     return false;
 };
 
-Sprites.prototype.writeStyles = function( retinaImgSize ) {
-    retinaImgSize = retinaImgSize || null;
+Sprites.prototype.writeStyles = function( retinaSpriteSize ) {
+    retinaSpriteSize = retinaSpriteSize || null;
     var that = this;
     var relPath = path.relative(that.sourceDir, path.dirname(that.destPath));
     var spriteFile = path.basename(that.destPath);
@@ -173,7 +195,13 @@ Sprites.prototype.writeStyles = function( retinaImgSize ) {
                 retinaFile = that.isFileHasRetinaSupport( file );
 
             if( retinaFile ) {
-                var retinaFileRatio = (file.size.width/retinaFile.size.width);
+                if( (file.size.width/retinaFile.size.width) || (file.size.width/retinaFile.size.width) )
+                var retinaFileRatio = ( that.specs.appendRight ?
+                                (file.size.width/retinaFile.size.width)
+                                :
+                                (file.size.height/retinaFile.size.height)
+                );
+                retinaFileRatio = 0.5;
                 content += util.format(
                     '.%s(@sizePercent: 1;) {\n' +
                     '\tdisplay: inline-block;\n' +
@@ -199,16 +227,17 @@ Sprites.prototype.writeStyles = function( retinaImgSize ) {
                     that.baseUrl,
                     retinaSpriteFile + ( that.noCache ? '?'+imgVer: '' ),
                     retX, retY,
-                    Math.ceil(retinaImgSize.width * retinaFileRatio) + 'px',
-                    Math.ceil(retinaImgSize.height * retinaFileRatio)+ 'px',
+                    Math.ceil(retinaSpriteSize.width * retinaFileRatio) + 'px',
+                    Math.ceil(retinaSpriteSize.height * retinaFileRatio)+ 'px',
                     x, y,
                     spriteSize.width, spriteSize.height
                 );
 
+
                 if (that.specs.appendRight) {
                     retX -= Math.ceil(retinaFile.size.width * retinaFileRatio);
                 } else {
-                    retY -= Math.ceil(retinaFile.size.height * retinaFileRatio);
+                    retY -= Math.floor(retinaFile.size.height * retinaFileRatio);
                 }
             } else {
                 content += util.format(
