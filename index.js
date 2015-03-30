@@ -16,7 +16,7 @@ function Sprites() {
     this.readArgs();
 }
 
-Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, prefix, noCache) {
+Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, lessPath,  baseUrl, prefix, noCache, border) {
     if ( sourceDir === false) {
         sourceDir = '.'; // default is current directory
     }
@@ -39,14 +39,19 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
     this.baseUrl = baseUrl;
     this.prefix = prefix;
     this.noCache = noCache;
+    this.borderWidth = border;
 
     this.files = [];
     this.spriteFile = im();
     this.spriteFile.out('-background', 'none');
+    this.spriteFile.out('-bordercolor', 'none');
+    this.spriteFile.out('-border', this.borderWidth);
 
     this.retinaFiles = [];
     this.spriteFileRetina = im();
     this.spriteFileRetina.out('-background', 'none');
+    this.spriteFileRetina.out('-bordercolor', 'none');
+    this.spriteFileRetina.out('-border', this.borderWidth*2);
     this.retinaDestPath = ( this.destPath.substr(0, ( this.destPath.length - '.png'.length )) + '@2x.png' );
 
     sourceFiles = this.getSourceFiles(sourceFiles);
@@ -66,15 +71,16 @@ Sprites.prototype.createSprite = function(sourceDir, sourceFiles, destPath, less
                         (file.size.width/retFile.size.width) != 0.5
                     ) {
                         console.error(
-                            "Skip: " + retFile.name + " : File size ration doesn't math original one.\n" +
+                            "Skip: " + retFile.name + " : File size ratio doesn't math original one.\n" +
                             "Retina size: " + retFile.size.width + ":" + retFile.size.height + "\n" +
                             "Original size: " + file.size.width + ":" + file.size.height + "\n" +
                             "\n"
                         );
 
                         this.retinaFiles.splice( this.retinaFiles.indexOf(retFile), 1 );
+                    } else {
+                        this.spriteFileRetina.append(retFile.path, this.specs.appendRight);
                     }
-                    this.spriteFileRetina.append(retFile.path, this.specs.appendRight);
                 }
             }
             //console.log(this.retinaFiles);
@@ -117,7 +123,7 @@ Sprites.prototype.getSourceFiles = function(files) {
 
 Sprites.prototype.combine = function(files) {
     var deferred = Q.defer();
-    async.each(files, this.processFile.bind(this), function(err) {
+    async.eachSeries(files, this.processFile.bind(this), function(err) {
         if (err) {
             deferred.reject(new Error(err));
         } else {
@@ -177,10 +183,10 @@ Sprites.prototype.writeStyles = function( retinaSpriteSize ) {
     var date = new Date(),
         imgVer = date.getFullYear().toString() + date.getMonth() + date.getDate() +  date.getHours() + date.getMinutes() + date.getSeconds();
     var content = '';
-    var x = 0;
-    var y = 0;
-    var retX = 0;
-    var retY = 0;
+    var x = -this.borderWidth;
+    var y = -this.borderWidth;
+    var retX = -this.borderWidth;
+    var retY = -this.borderWidth;
     var spriteSize;
 
     im(that.destPath).size(function(err, size) {
@@ -235,9 +241,9 @@ Sprites.prototype.writeStyles = function( retinaSpriteSize ) {
 
 
                 if (that.specs.appendRight) {
-                    retX -= Math.ceil(retinaFile.size.width * retinaFileRatio);
+                    retX -= Math.ceil(retinaFile.size.width * retinaFileRatio) + that.borderWidth*2;
                 } else {
-                    retY -= Math.floor(retinaFile.size.height * retinaFileRatio);
+                    retY -= Math.floor(retinaFile.size.height * retinaFileRatio) + that.borderWidth*2;
                 }
             } else {
                 content += util.format(
@@ -260,9 +266,9 @@ Sprites.prototype.writeStyles = function( retinaSpriteSize ) {
             }
 
             if (that.specs.appendRight) {
-                x -= file.size.width;
+                x -= file.size.width + that.borderWidth*2;
             } else {
-                y -= file.size.height;
+                y -= file.size.height + that.borderWidth*2;
             }
         }
 
@@ -306,6 +312,9 @@ Sprites.prototype.readArgs = function() {
     }
     if( !specs['nocache'] ) {
         specs['nocache'] = false;
+    }
+    if( !specs['border'] ) {
+        specs['border'] = 2;
     }
 
     if( specs['sprite'] ) {
@@ -352,7 +361,8 @@ Sprites.prototype.readArgs = function() {
         specs['less'],
         specs['base_url'],
         specs['prefix'],
-        specs['nocache']
+        specs['nocache'],
+        specs['border']
     );
 };
 
